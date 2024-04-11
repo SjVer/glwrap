@@ -22,8 +22,9 @@ add_library(glad include/glad/glad.h glad.c)
 link_directories(${CMAKE_SOURCE_DIR}/lib)
 add_link_options(/NODEFAULTLIB:MSVCRT)
 
-add_executable(tests tests.cpp)
-target_link_libraries(tests glad GTest::gtest_main glfw3)
+file(GLOB TestSources tests/*.cpp)
+add_executable(tests main.cpp ${TestSources})
+target_link_libraries(tests glad GTest::gtest glfw3)
 
 include(GoogleTest)
 gtest_discover_tests(tests)

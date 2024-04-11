@@ -1,3 +1,5 @@
+#pragma once
+
 #include <glad/glad.h>
 #include <memory>
 
@@ -12,18 +14,17 @@ namespace glwrap
  * @tparam target The target for `glBindBuffer`
  * @tparam binding The binding for `glGet`
  */
-template <GLenum target, GLenum binding>
-class Buffer : public Resource<binding>
+template <GLenum _target, GLenum _binding>
+class Buffer : public Object<_binding>
 {
   protected:
-    void BindIfUnbound() const
+    inline void BindIfUnbound() const
     {
-        if(GetBound() != m_handle)
-            Bind();
+        if (!IsBound()) Bind();
     }
 
   public:
-    static inline GLenum TARGET = target;
+    static inline GLenum TARGET = _target;
 
     Buffer() { glGenBuffers(1, &m_handle); }
     ~Buffer() { glDeleteBuffers(1, &m_handle); }
@@ -32,8 +33,8 @@ class Buffer : public Resource<binding>
     Buffer& operator=(const Buffer& other) = delete;
     Buffer(Buffer&& other) = delete;
 
-    void Bind() const { glBindBuffer(target, m_handle); }
-    void Unbind() const { glBindBuffer(target, 0); }
+    void Bind() const { glBindBuffer(TARGET, m_handle); }
+    void Unbind() const { glBindBuffer(TARGET, 0); }
 
     /**
      * @brief Creates and writes to the buffer's data storage
@@ -46,7 +47,7 @@ class Buffer : public Resource<binding>
     void Store(GLsizeiptr size, GLenum usage, const void* data)
     {
         BindIfUnbound();
-        glBufferData(target, size, data, usage);
+        glBufferData(TARGET, size, data, usage);
     }
 
     /// @brief An alias for `Store(size, usage, nullptr)`
@@ -66,7 +67,7 @@ class Buffer : public Resource<binding>
     void Write(GLintptr offset, const void* data, GLsizeiptr size)
     {
         BindIfUnbound();
-        glBufferSubData(target, offset, size, data);
+        glBufferSubData(TARGET, offset, size, data);
     }
 
     /**
@@ -81,14 +82,14 @@ class Buffer : public Resource<binding>
     {
         BindIfUnbound();
         void* data = new char[size];
-        glGetBufferSubData(target, offset, size, data);
+        glGetBufferSubData(TARGET, offset, size, data);
         return data;
     }
 
     /**
      * @brief An alias for `Get(0, Size())`
      * @return A pointer to the data, allocated with `new`
-    */
+     */
     inline void* Get() { return Get(0, Size()); }
 
     /**
@@ -101,7 +102,7 @@ class Buffer : public Resource<binding>
     void* Map(GLenum access)
     {
         BindIfUnbound();
-        return glMapBuffer(target, access);
+        return glMapBuffer(TARGET, access);
     }
 
     /**
@@ -111,7 +112,7 @@ class Buffer : public Resource<binding>
     void Unmap()
     {
         BindIfUnbound();
-        glUnmapBuffer(target);
+        glUnmapBuffer(TARGET);
     }
 
     /**
@@ -122,19 +123,13 @@ class Buffer : public Resource<binding>
     {
         BindIfUnbound();
         GLint size;
-        glGetBufferParameteriv(target, GL_BUFFER_SIZE, &size);
+        glGetBufferParameteriv(TARGET, GL_BUFFER_SIZE, &size);
         return size;
     }
 };
 
 /// @brief A buffer with target `GL_ARRAY_BUFFER` and binding `GL_ARRAY_BUFFER_BINDING`
 using ArrayBuffer = Buffer<GL_ARRAY_BUFFER, GL_ARRAY_BUFFER_BINDING>;
-
-/// @brief A buffer with target `GL_COPY_READ_BUFFER` and binding `GL_COPY_READ_BUFFER_BINDING`
-using CopyReadBuffer = Buffer<GL_COPY_READ_BUFFER, GL_COPY_READ_BUFFER_BINDING>;
-
-/// @brief A buffer with target `GL_COPY_WRITE_BUFFER` and binding `GL_COPY_WRITE_BUFFER_BINDING`
-using CopyWriteBuffer = Buffer<GL_COPY_WRITE_BUFFER, GL_COPY_WRITE_BUFFER_BINDING>;
 
 /// @brief A buffer with target `GL_ELEMENT_ARRAY_BUFFER` and binding `GL_ELEMENT_ARRAY_BUFFER_BINDING`
 using ElementArrayBuffer = Buffer<GL_ELEMENT_ARRAY_BUFFER, GL_ELEMENT_ARRAY_BUFFER_BINDING>;
@@ -147,26 +142,5 @@ using PixelUnpackBuffer = Buffer<GL_PIXEL_UNPACK_BUFFER, GL_PIXEL_UNPACK_BUFFER_
 
 /// @brief A buffer with target `GL_TRANSFORM_FEEDBACK_BUFFER` and binding `GL_TRANSFORM_FEEDBACK_BUFFER_BINDING`
 using TransformFeedbackBuffer = Buffer<GL_TRANSFORM_FEEDBACK_BUFFER, GL_TRANSFORM_FEEDBACK_BUFFER_BINDING>;
-
-/// @brief A buffer with target `GL_UNIFORM_BUFFER` and binding `GL_UNIFORM_BUFFER_BINDING`
-using UniformBuffer = Buffer<GL_UNIFORM_BUFFER, GL_UNIFORM_BUFFER_BINDING>;
-
-/// @brief A buffer with target `GL_ATOMIC_COUNTER_BUFFER` and binding `GL_ATOMIC_COUNTER_BUFFER_BINDING`
-using AtomicCounterBuffer = Buffer<GL_ATOMIC_COUNTER_BUFFER, GL_ATOMIC_COUNTER_BUFFER_BINDING>;
-
-/// @brief A buffer with target `GL_DISPATCH_INDIRECT_BUFFER` and binding `GL_DISPATCH_INDIRECT_BUFFER_BINDING`
-using DispatchIndirectBuffer = Buffer<GL_DISPATCH_INDIRECT_BUFFER, GL_DISPATCH_INDIRECT_BUFFER_BINDING>;
-
-/// @brief A buffer with target `GL_DRAW_INDIRECT_BUFFER` and binding `GL_DRAW_INDIRECT_BUFFER_BINDING`
-using DrawIndirectBuffer = Buffer<GL_DRAW_INDIRECT_BUFFER, GL_DRAW_INDIRECT_BUFFER_BINDING>;
-
-/// @brief A buffer with target `GL_QUERY_BUFFER` and binding `GL_QUERY_BUFFER_BINDING`
-using QueryBuffer = Buffer<GL_QUERY_BUFFER, GL_QUERY_BUFFER_BINDING>;
-
-/// @brief A buffer with target `GL_SHADER_STORAGE_BUFFER` and binding `GL_SHADER_STORAGE_BUFFER_BINDING`
-using ShaderStorageBuffer = Buffer<GL_SHADER_STORAGE_BUFFER, GL_SHADER_STORAGE_BUFFER_BINDING>;
-
-/// @brief A buffer with target `GL_TEXTURE_BUFFER` and binding `GL_TEXTURE_BUFFER_BINDING`
-using TextureBuffer = Buffer<GL_TEXTURE_BUFFER, GL_TEXTURE_BUFFER_BINDING>;
 
 } // namespace glwrap

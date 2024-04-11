@@ -1,0 +1,213 @@
+#pragma once
+
+#include <glad/glad.h>
+#include <istream>
+#include <string>
+#include <vector>
+
+#include "glwrap/resource.hpp"
+
+namespace glwrap
+{
+
+/**
+ * @brief A single shader
+ */
+template <GLenum type>
+class Shader
+{
+  protected:
+    GLuint m_handle;
+
+  public:
+    static inline GLenum TYPE = type;
+
+    Shader() { m_handle = glCreateShader(TYPE); }
+    ~Shader() { glDeleteShader(m_handle); }
+
+    Shader(const Shader& other) = delete;
+    Shader& operator=(const Shader& other) = delete;
+    Shader(Shader&& other) = delete;
+
+    inline GLuint Handle() const { return m_handle; }
+
+    /**
+     * @brief Sets the shader source
+     * @see glShaderSource
+     */
+    void Source(const char* source)
+    {
+        glShaderSource(m_handle, 1, &source, nullptr);
+    }
+
+    /**
+     * @brief Sets the shader source from a file
+     * @see glShaderSource
+     */
+    void SourceFile(const char* path)
+    {
+        using namespace std;
+
+        ifstream s(path);
+        string str((istreambuf_iterator<char>(s)), istreambuf_iterator<char>());
+        s.close();
+
+        Source(str.c_str());
+    }
+
+    /**
+     * @brief Compiles the shader
+     * @see glCompileShader
+     *
+     * @return Whether the shader compiled successfully
+     */
+    bool Compile()
+    {
+        glCompileShader(m_handle);
+        return GetCompileStatus();
+    }
+
+    /// @see glGetShaderiv
+    bool GetCompileStatus() const
+    {
+        GLint status;
+        glGetShaderiv(m_handle, GL_COMPILE_STATUS, &status);
+        return status == GL_TRUE;
+    }
+
+    /**
+     * @brief Gets the shader's info log
+     * @see glGetShaderInfoLog
+     */
+    std::string GetInfoLog() const
+    {
+        GLint length;
+        glGetShaderiv(m_handle, GL_INFO_LOG_LENGTH, &length);
+
+        std::string log(length, '\0');
+        glGetShaderInfoLog(m_handle, length, nullptr, log.data());
+
+        return log;
+    }
+};
+
+/**
+ * @brief A shader program
+ */
+class ShaderProgram : public Object<GL_CURRENT_PROGRAM>
+{
+  protected:
+    inline void UseIfUnused() const
+    {
+        if (!IsBound())
+            Use();
+    }
+
+    std::vector<std::string> m_uniforms = {};
+
+  public:
+    ShaderProgram() { m_handle = glCreateProgram(); }
+    ~ShaderProgram() { glDeleteProgram(m_handle); }
+
+    ShaderProgram(const ShaderProgram& other) = delete;
+    ShaderProgram& operator=(const ShaderProgram& other) = delete;
+    ShaderProgram(ShaderProgram&& other) = delete;
+
+    void Use() const { glUseProgram(m_handle); }
+    void Unuse() const { glUseProgram(0); }
+
+    /**
+     * @brief Attaches a shader to the program
+     * @see glAttachShader
+     */
+    template <GLenum type>
+    void Attach(const Shader<type>& shader)
+    {
+        glAttachShader(m_handle, shader.Handle());
+    }
+
+    /*
+     * @brief Unattaches a shader from the program
+     * @see glDetachShader
+     */
+    template <GLenum type>
+    void Detach(const Shader<type>& shader)
+    {
+        glDetachShader(m_handle, shader.Handle());
+    }
+
+    /**
+     * @brief Links the program
+     * @see glLinkProgram
+     *
+     * @return Whether the program linked successfully
+     */
+    bool Link()
+    {
+        glLinkProgram(m_handle);
+        glValidateProgram(m_handle);
+
+        if (!GetLinkStatus()) return false;
+
+        // gather uniforms
+        m_uniforms = std::vector<std::string>();
+        m_uniforms.clear();
+
+        GLint count;
+        glGetProgramiv(m_handle, GL_ACTIVE_UNIFORMS, &count);
+
+        GLint maxLength;
+        glGetProgramiv(m_handle, GL_ACTIVE_UNIFORM_MAX_LENGTH, &maxLength);
+
+        int length;
+        GLint size;
+        GLenum type;
+        GLchar* name = new GLchar[maxLength];
+        for (int i = 0; i < count; i++)
+        {
+            glGetActiveUniform(
+                m_handle, i, maxLength, &length,
+                &size, &type, name
+            );
+            m_uniforms.push_back(std::string(name, length));
+        }
+
+        return true;
+    }
+
+    /// @see glGetProgramiv
+    bool GetLinkStatus() const
+    {
+        GLint status;
+        glGetProgramiv(m_handle, GL_LINK_STATUS, &status);
+        return status == GL_TRUE;
+    }
+
+    /**
+     * @brief Gets the program's info log
+     * @see glGetProgramInfoLog
+     */
+    std::string GetInfoLog() const
+    {
+        GLint length;
+        glGetProgramiv(m_handle, GL_INFO_LOG_LENGTH, &length);
+
+        std::string log(length, '\0');
+        glGetProgramInfoLog(m_handle, length, nullptr, log.data());
+
+        return log;
+    }
+
+    /**
+     * @brief Gets the location of a uniform variable
+     * @see glGetUniformLocation
+     */
+    GLint GetUniformLocation(const char* name) const
+    {
+        auto it = std::find(m_uniforms.begin(), m_uniforms.end(), name);
+        if (it == m_uniforms.end()) return -1;
+        return static_cast<GLint>(it - m_uniforms.begin());
+    }
+};
+
+} // namespace glwrap

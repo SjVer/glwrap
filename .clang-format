@@ -1,10 +1,24 @@
 Language: Cpp
+
 IndentWidth: 4
 ColumnLimit: 0
 MaxEmptyLinesToKeep: 1
-NamespaceIndentation: None
+
+SortIncludes: false
+
 PointerAlignment: Left
-SpaceBeforeParens: Never
+NamespaceIndentation: None
+IndentAccessModifiers: false
+
+SpaceBeforeParens: ControlStatements
 BreakBeforeBraces: Allman
 AlwaysBreakTemplateDeclarations: Yes
-IndentAccessModifiers: false
+AlignAfterOpenBracket: BlockIndent
+
+IndentCaseLabels: true
+AllowShortCaseLabelsOnASingleLine: true
+AlignConsecutiveShortCaseStatements:
+  Enabled: true
+
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: true
