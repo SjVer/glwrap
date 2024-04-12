@@ -7,9 +7,13 @@ using namespace glwrap;
 
 TEST(SUITE, CreateShader)
 {
-    Shader<GL_VERTEX_SHADER> shader;
+    VertexShader shader;
     EXPECT_EQ(shader.TYPE, GL_VERTEX_SHADER);
     EXPECT_NE(shader.Handle(), 0);
+
+    FragmentShader fragmentShader;
+    EXPECT_EQ(fragmentShader.TYPE, GL_FRAGMENT_SHADER);
+    EXPECT_NE(fragmentShader.Handle(), 0);
 }
 
 TEST(SUITE, CompileShader)
@@ -38,13 +42,13 @@ TEST(SUITE, CompileShaderError)
 
 TEST(SUITE, CreateProgram)
 {
-    ShaderProgram program;
+    Program program;
     EXPECT_NE(program.Handle(), 0);
 }
 
 TEST(SUITE, LinkProgram)
 {
-    ShaderProgram program;
+    Program program;
     Shader<GL_VERTEX_SHADER> vertexShader;
     Shader<GL_FRAGMENT_SHADER> fragmentShader;
 
@@ -71,14 +75,13 @@ TEST(SUITE, LinkProgram)
 
 TEST(SUITE, Uniforms)
 {
-    ShaderProgram program;
-    Shader<GL_VERTEX_SHADER> vertexShader;
-    Shader<GL_FRAGMENT_SHADER> fragmentShader;
+    Program program;
+    VertexShader vertexShader;
+    FragmentShader fragmentShader;
 
     vertexShader.Source(
         "#version 330 core\n"
-        "uniform mat4 model;\n"
-        "void main() { gl_Position = model * vec4(0.0); }"
+        "void main() { }"
     );
 
     fragmentShader.Source(
@@ -97,12 +100,42 @@ TEST(SUITE, Uniforms)
     EXPECT_TRUE(program.Link());
     EXPECT_TRUE(program.GetLinkStatus());
 
-    EXPECT_EQ(
-        glGetUniformLocation(program.Handle(), "model"),
-        program.GetUniformLocation("model")
+    EXPECT_EQ(program.GetUniformCount(), 1);
+    EXPECT_NE(program.GetUniformLocation("color"), -1);
+}
+
+TEST(SUITE, Manager)
+{
+    ShaderManager manager;
+    VertexShader vertexShader;
+    FragmentShader fragmentShader;
+
+    vertexShader.Source(
+        "#version 330 core\n"
+        "void main() { }"
     );
+
+    fragmentShader.Source(
+        "#version 330 core\n"
+        "uniform vec4 color;\n"
+        "out vec4 fragColor;\n"
+        "void main() { fragColor = color; }"
+    );
+
+    EXPECT_TRUE(vertexShader.Compile());
+    EXPECT_TRUE(fragmentShader.Compile());
+
+    manager.Attach(vertexShader);
+    manager.Attach(fragmentShader);
+
+    EXPECT_TRUE(manager.Link());
+    EXPECT_TRUE(manager.GetLinkStatus());
+
+    EXPECT_EQ(manager.GetUniformCount(), manager.Program::GetUniformCount());
+
+    EXPECT_NE(manager.GetUniformLocation("color"), -1);
     EXPECT_EQ(
-        glGetUniformLocation(program.Handle(), "color"),
-        program.GetUniformLocation("color")
+        manager.GetUniformLocation("color"),
+        manager.Program::GetUniformLocation("color")
     );
 }

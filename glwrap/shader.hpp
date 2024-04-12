@@ -13,14 +13,14 @@ namespace glwrap
 /**
  * @brief A single shader
  */
-template <GLenum type>
+template <GLenum _type>
 class Shader
 {
   protected:
     GLuint m_handle;
 
   public:
-    static inline GLenum TYPE = type;
+    static inline GLenum TYPE = _type;
 
     Shader() { m_handle = glCreateShader(TYPE); }
     ~Shader() { glDeleteShader(m_handle); }
@@ -91,10 +91,13 @@ class Shader
     }
 };
 
+using VertexShader = Shader<GL_VERTEX_SHADER>;
+using FragmentShader = Shader<GL_FRAGMENT_SHADER>;
+
 /**
  * @brief A shader program
  */
-class ShaderProgram : public Object<GL_CURRENT_PROGRAM>
+class Program : public Object<GL_CURRENT_PROGRAM>
 {
   protected:
     inline void UseIfUnused() const
@@ -106,12 +109,12 @@ class ShaderProgram : public Object<GL_CURRENT_PROGRAM>
     std::vector<std::string> m_uniforms = {};
 
   public:
-    ShaderProgram() { m_handle = glCreateProgram(); }
-    ~ShaderProgram() { glDeleteProgram(m_handle); }
+    Program() { m_handle = glCreateProgram(); }
+    ~Program() { glDeleteProgram(m_handle); }
 
-    ShaderProgram(const ShaderProgram& other) = delete;
-    ShaderProgram& operator=(const ShaderProgram& other) = delete;
-    ShaderProgram(ShaderProgram&& other) = delete;
+    Program(const Program& other) = delete;
+    Program& operator=(const Program& other) = delete;
+    Program(Program&& other) = delete;
 
     void Use() const { glUseProgram(m_handle); }
     void Unuse() const { glUseProgram(0); }
@@ -146,33 +149,7 @@ class ShaderProgram : public Object<GL_CURRENT_PROGRAM>
     {
         glLinkProgram(m_handle);
         glValidateProgram(m_handle);
-
-        if (!GetLinkStatus()) return false;
-
-        // gather uniforms
-        m_uniforms = std::vector<std::string>();
-        m_uniforms.clear();
-
-        GLint count;
-        glGetProgramiv(m_handle, GL_ACTIVE_UNIFORMS, &count);
-
-        GLint maxLength;
-        glGetProgramiv(m_handle, GL_ACTIVE_UNIFORM_MAX_LENGTH, &maxLength);
-
-        int length;
-        GLint size;
-        GLenum type;
-        GLchar* name = new GLchar[maxLength];
-        for (int i = 0; i < count; i++)
-        {
-            glGetActiveUniform(
-                m_handle, i, maxLength, &length,
-                &size, &type, name
-            );
-            m_uniforms.push_back(std::string(name, length));
-        }
-
-        return true;
+        return GetLinkStatus();
     }
 
     /// @see glGetProgramiv
@@ -196,6 +173,92 @@ class ShaderProgram : public Object<GL_CURRENT_PROGRAM>
         glGetProgramInfoLog(m_handle, length, nullptr, log.data());
 
         return log;
+    }
+
+    /**
+     * @brief Gets the number of active uniforms
+     * @see glGetProgramiv
+     */
+    GLint GetUniformCount() const
+    {
+        GLint count;
+        glGetProgramiv(m_handle, GL_ACTIVE_UNIFORMS, &count);
+        return count;
+    }
+
+    /**
+     * @brief Gets the location of a uniform variable
+     * @see glGetUniformLocation
+     */
+    GLint GetUniformLocation(const char* name) const
+    {
+        return glGetUniformLocation(m_handle, name);
+
+#if 0
+        auto it = std::find(m_uniforms.begin(), m_uniforms.end(), name);
+        if (it == m_uniforms.end()) return -1;
+        return static_cast<GLint>(it - m_uniforms.begin());
+#endif
+    }
+};
+
+/**
+ * @brief A shader program with uniform management
+ */
+class ShaderManager : public Program
+{
+  protected:
+    std::vector<std::string> m_uniforms = {};
+
+  public:
+    ShaderManager() = default;
+    ~ShaderManager() = default;
+
+    ShaderManager(const ShaderManager& other) = delete;
+    ShaderManager& operator=(const ShaderManager& other) = delete;
+    ShaderManager(ShaderManager&& other) = delete;
+
+    /**
+     * @brief Links the program
+     * @see glLinkProgram
+     *
+     * @return Whether the program linked successfully
+     */
+    bool Link()
+    {
+        m_uniforms.clear();
+
+        if (!Program::Link()) return false;
+
+        // gather uniforms
+
+        GLint count, maxLength;
+        glGetProgramiv(m_handle, GL_ACTIVE_UNIFORMS, &count);
+        glGetProgramiv(m_handle, GL_ACTIVE_UNIFORM_MAX_LENGTH, &maxLength);
+
+        int length;
+        GLint size;
+        GLenum type;
+        GLchar* name = new GLchar[maxLength];
+        for (int i = 0; i < count; i++)
+        {
+            glGetActiveUniform(
+                m_handle, i, maxLength, &length,
+                &size, &type, name
+            );
+            m_uniforms.push_back(std::string(name, length));
+        }
+
+        return true;
+    }
+
+    /**
+     * @brief Gets the number of active uniforms
+     * @see glGetProgramiv
+     */
+    GLint GetUniformCount() const
+    {
+        return static_cast<GLint>(m_uniforms.size());
     }
 
     /**
