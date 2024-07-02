@@ -1,6 +1,6 @@
 #pragma once
 
-#include <glad/glad.h>
+#include "glwrap/include_gl.h"
 
 namespace glwrap
 {

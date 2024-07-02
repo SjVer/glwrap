@@ -1,9 +1,9 @@
 #pragma once
 
-#include <glad/glad.h>
 #include <memory>
 
-#include "glwrap/resource.hpp"
+#include "glwrap/include_gl.h"
+#include "glwrap/object.hpp"
 
 namespace glwrap
 {
@@ -29,6 +29,7 @@ class Buffer : public Object<_binding>
     Buffer() { glGenBuffers(1, &m_handle); }
     ~Buffer() { glDeleteBuffers(1, &m_handle); }
 
+    /// @warning Deleted to prevent double deletion, use `std::unique_ptr` instead
     Buffer(const Buffer& other) = delete;
     Buffer& operator=(const Buffer& other) = delete;
     Buffer(Buffer&& other) = delete;

@@ -1,12 +1,12 @@
 #pragma once
 
-#include <glad/glad.h>
+#include "glwrap/include_gl.h"
 
 #ifndef GL_VERSION_3_0
 #error "OpenGL 3.0 is required to use VertexArray"
 #endif
 
-#include "glwrap/resource.hpp"
+#include "glwrap/object.hpp"
 
 namespace glwrap
 {

@@ -1,11 +1,11 @@
 #pragma once
 
-#include <glad/glad.h>
 #include <istream>
 #include <string>
 #include <vector>
 
-#include "glwrap/resource.hpp"
+#include "glwrap/include_gl.h"
+#include "glwrap/object.hpp"
 
 namespace glwrap
 {
@@ -25,6 +25,7 @@ class Shader
     Shader() { m_handle = glCreateShader(TYPE); }
     ~Shader() { glDeleteShader(m_handle); }
 
+    /// @warning Deleted to prevent double deletion, use `std::unique_ptr` instead
     Shader(const Shader& other) = delete;
     Shader& operator=(const Shader& other) = delete;
     Shader(Shader&& other) = delete;
@@ -40,6 +41,13 @@ class Shader
         glShaderSource(m_handle, 1, &source, nullptr);
     }
 
+    static Shader<_type> FromSource(const char* source)
+    {
+        Shader<_type> shader;
+        shader.Source(source);
+        return shader;
+    }
+
     /**
      * @brief Sets the shader source from a file
      * @see glShaderSource
@@ -53,6 +61,13 @@ class Shader
         s.close();
 
         Source(str.c_str());
+    }
+
+    static Shader<_type> FromSourceFile(const char* path)
+    {
+        Shader<_type> shader;
+        shader.SourceFile(path);
+        return shader;
     }
 
     /**
@@ -99,15 +114,6 @@ using FragmentShader = Shader<GL_FRAGMENT_SHADER>;
  */
 class Program : public Object<GL_CURRENT_PROGRAM>
 {
-  protected:
-    inline void UseIfUnused() const
-    {
-        if (!IsBound())
-            Use();
-    }
-
-    std::vector<std::string> m_uniforms = {};
-
   public:
     Program() { m_handle = glCreateProgram(); }
     ~Program() { glDeleteProgram(m_handle); }
@@ -193,12 +199,6 @@ class Program : public Object<GL_CURRENT_PROGRAM>
     GLint GetUniformLocation(const char* name) const
     {
         return glGetUniformLocation(m_handle, name);
-
-#if 0
-        auto it = std::find(m_uniforms.begin(), m_uniforms.end(), name);
-        if (it == m_uniforms.end()) return -1;
-        return static_cast<GLint>(it - m_uniforms.begin());
-#endif
     }
 };
 
