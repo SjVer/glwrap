@@ -11,20 +11,14 @@ namespace glwrap
 /**
  * @brief A buffer object
  *
- * @tparam target The target for `glBindBuffer`
- * @tparam binding The binding for `glGet`
+ * @tparam _target The target for `glBindBuffer`
+ * @tparam _binding The binding for `glGet`
  */
 template <GLenum _target, GLenum _binding>
 class Buffer : public Object<_binding>
 {
-  protected:
-    inline void BindIfUnbound() const
-    {
-        if (!IsBound()) Bind();
-    }
-
   public:
-    static inline GLenum TARGET = _target;
+    static constexpr GLenum TARGET = _target;
 
     Buffer() { glGenBuffers(1, &m_handle); }
     ~Buffer() { glDeleteBuffers(1, &m_handle); }
@@ -44,10 +38,12 @@ class Buffer : public Object<_binding>
      * @param size The size in bytes of the buffer
      * @param usage The expected usage of the data
      * @param data The initial data or `nullptr` to leave uninitialized
+     *
+     * @note This function binds the buffer
      */
     void Store(GLsizeiptr size, GLenum usage, const void* data)
     {
-        BindIfUnbound();
+        Bind();
         glBufferData(TARGET, size, data, usage);
     }
 
@@ -64,10 +60,12 @@ class Buffer : public Object<_binding>
      * @param offset The offset into the buffer object's data, in bytes
      * @param data The new data to be copied into the data store
      * @param size The size in bytes of the data being overwritten
+     *
+     * @note This function binds the buffer
      */
     void Write(GLintptr offset, const void* data, GLsizeiptr size)
     {
-        BindIfUnbound();
+        Bind();
         glBufferSubData(TARGET, offset, size, data);
     }
 
@@ -78,10 +76,12 @@ class Buffer : public Object<_binding>
      * @param offset The offset into the buffer object's data, in bytes
      * @param size The size in bytes of the data being retrieved
      * @return A pointer to the data, allocated with `new`
+     *
+     * @note This function binds the buffer
      */
     void* Get(GLintptr offset, GLsizeiptr size)
     {
-        BindIfUnbound();
+        Bind();
         void* data = new char[size];
         glGetBufferSubData(TARGET, offset, size, data);
         return data;
@@ -99,30 +99,36 @@ class Buffer : public Object<_binding>
      *
      * @param access The access policy
      * @return A pointer to the data
+     *
+     * @note This function binds the buffer
      */
     void* Map(GLenum access)
     {
-        BindIfUnbound();
+        Bind();
         return glMapBuffer(TARGET, access);
     }
 
     /**
      * @brief Unmaps the buffer's data store
      * @see glUnmapBuffer
+     *
+     * @note This function binds the buffer
      */
     void Unmap()
     {
-        BindIfUnbound();
+        Bind();
         glUnmapBuffer(TARGET);
     }
 
     /**
      * @brief Returns the size of the buffer's data store in bytes
      * @see glGetBufferParameteriv
+     *
+     * @note This function binds the buffer
      */
     GLsizeiptr Size() const
     {
-        BindIfUnbound();
+        Bind();
         GLint size;
         glGetBufferParameteriv(TARGET, GL_BUFFER_SIZE, &size);
         return size;

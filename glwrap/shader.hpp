@@ -20,7 +20,7 @@ class Shader
     GLuint m_handle;
 
   public:
-    static inline GLenum TYPE = _type;
+    static constexpr GLenum TYPE = _type;
 
     Shader() { m_handle = glCreateShader(TYPE); }
     ~Shader() { glDeleteShader(m_handle); }

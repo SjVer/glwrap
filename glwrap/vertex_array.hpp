@@ -16,12 +16,6 @@ namespace glwrap
  */
 class VertexArray : public Object<GL_VERTEX_ARRAY_BINDING>
 {
-  protected:
-    inline void BindIfUnbound() const
-    {
-        if (!IsBound()) Bind();
-    }
-
   public:
     VertexArray() { glGenVertexArrays(1, &m_handle); }
     ~VertexArray() { glDeleteVertexArrays(1, &m_handle); }
@@ -43,13 +37,15 @@ class VertexArray : public Object<GL_VERTEX_ARRAY_BINDING>
      * @param normalized Whether the data should be normalized
      * @param stride The byte offset between consecutive attributes
      * @param offset The byte offset of the first component
+     *
+     * @note This function binds the buffer
      */
     void DefineAttribute(
         GLuint index, GLint components, GLenum type,
         GLboolean normalized, GLsizei stride, size_t offset
     )
     {
-        BindIfUnbound();
+        Bind();
         glVertexAttribPointer(
             index, components, type,
             normalized, stride, reinterpret_cast<void*>(offset)
