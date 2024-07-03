@@ -34,6 +34,14 @@ class Texture : public Object<_binding>
     }
     void Unbind() const { glBindTexture(TARGET, 0); }
 
+    /// @brief Gets active texture unit
+    static GLint GetActiveUnit()
+    {
+        GLint unit;
+        glGetIntegerv(GL_ACTIVE_TEXTURE, &unit);
+        return unit;
+    }
+
     /**
      * @brief Set a texture parameter
      * @see glTexParameter

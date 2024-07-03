@@ -9,7 +9,7 @@ template <GLenum _binding>
 class Object
 {
   protected:
-    GLuint m_handle;
+    GLuint m_handle = 0;
 
   public:
     static inline GLenum BINDING = _binding;
